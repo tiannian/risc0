@@ -137,6 +137,7 @@ pub mod nr {
     declare_syscall!(pub SYS_READ);
     declare_syscall!(pub SYS_VERIFY_INTEGRITY);
     declare_syscall!(pub SYS_WRITE);
+    declare_syscall!(pub SYS_TIME);
 }
 
 impl SyscallName {
@@ -778,6 +779,16 @@ pub unsafe extern "C" fn sys_verify_integrity(
         const MSG: &[u8] = "sys_verify_integrity returned error result".as_bytes();
         unsafe { sys_panic(MSG.as_ptr(), MSG.len()) };
     }
+}
+
+/// # Safety
+///
+/// millis just a single u32 and dereferenceable.
+#[cfg(feature = "export-syscalls")]
+#[no_mangle]
+pub unsafe extern "C" fn sys_time(nanos_ptr: *mut u32) -> u64 {
+    let Return(hi, lo) = unsafe { syscall_0(nr::SYS_TIME, nanos_ptr, 1) };
+    ((hi as u64) << 32) + lo as u64
 }
 
 // Make sure we only get one of these since it's stateful.

@@ -68,14 +68,14 @@
 //! [proof composition]:https://www.risczero.com/blog/proof-composition
 //! [guest-optimization]: https://dev.risczero.com/api/zkvm/optimization#when-reading-data-as-raw-bytes-use-envread_slice
 
-use core::{cell::OnceCell, convert::Infallible, fmt};
+use core::{cell::OnceCell, convert::Infallible, fmt, time::Duration};
 
 use bytemuck::Pod;
 use risc0_zkvm_platform::{
     align_up, fileno,
     syscall::{
         self, sys_alloc_words, sys_cycle_count, sys_halt, sys_input, sys_log, sys_pause, sys_read,
-        sys_read_words, sys_verify_integrity, sys_write, syscall_2, SyscallName,
+        sys_read_words, sys_time, sys_verify_integrity, sys_write, syscall_2, SyscallName,
     },
     WORD_SIZE,
 };
@@ -734,4 +734,35 @@ pub fn input_digest() -> Digest {
         sys_input(6),
         sys_input(7),
     ])
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SystemTime {
+    second: u64,
+    nanos: u32,
+}
+
+#[derive(Clone, Debug)]
+pub struct SystemTimeError(Duration);
+
+impl SystemTime {
+    pub const UNIX_EPOCH: SystemTime = SystemTime {
+        second: 0,
+        nanos: 0,
+    };
+
+    pub fn now() -> Self {
+        let mut nanos = 0u32;
+
+        let second = unsafe { sys_time(&mut nanos as *mut u32) };
+
+        Self { second, nanos }
+    }
+
+    pub fn duration_since(&self, earlier: SystemTime) -> Result<Duration, SystemTimeError> {
+        let second = self.second - earlier.second;
+        let nanos = self.nanos - earlier.nanos;
+
+        Ok(Duration::new(second, nanos))
+    }
 }

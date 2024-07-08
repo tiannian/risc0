@@ -14,7 +14,9 @@
 
 //! Handlers for two-way private I/O between host and guest.
 
-use std::{cell::RefCell, cmp::min, collections::HashMap, rc::Rc, str::from_utf8};
+use std::{
+    cell::RefCell, cmp::min, collections::HashMap, rc::Rc, str::from_utf8, time::SystemTime,
+};
 
 use anyhow::{anyhow, bail, Context, Result};
 use bytes::Bytes;
@@ -133,6 +135,30 @@ impl Syscall for SysCycleCount {
         let cycle = ctx.get_cycle();
         let hi = (cycle >> 32) as u32;
         let lo = cycle as u32;
+        Ok((hi, lo))
+    }
+}
+
+pub(crate) struct SysTime;
+impl Syscall for SysTime {
+    fn syscall(
+        &mut self,
+        _syscall: &str,
+        _ctx: &mut dyn SyscallContext,
+        to_guest: &mut [u32],
+    ) -> Result<(u32, u32)> {
+        let time = SystemTime::now();
+
+        let duration = time
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map_err(|_| anyhow!("Failed to read system time"))?;
+
+        to_guest[0] = duration.subsec_nanos();
+        let second = duration.as_secs();
+
+        let hi = (second >> 32) as u32;
+        let lo = second as u32;
+
         Ok((hi, lo))
     }
 }

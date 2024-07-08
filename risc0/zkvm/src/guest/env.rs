@@ -736,21 +736,31 @@ pub fn input_digest() -> Digest {
     ])
 }
 
+/// SystemTime like std.
+///
+/// Refer to [std::time::SystemTime](https://doc.rust-lang.org/std/time/struct.SystemTime.html)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SystemTime {
     second: u64,
     nanos: u32,
 }
 
+/// Error of SystemTime
 #[derive(Clone, Debug)]
-pub struct SystemTimeError(Duration);
+pub struct SystemTimeError(());
 
 impl SystemTime {
+    /// Unix timestamp's anchor. `1970-01-01 00:00:00 UTC`
+    ///
+    /// Refer to [UNIX_EPOCH](https://doc.rust-lang.org/std/time/struct.SystemTime.html#associatedconstant.UNIX_EPOCH)
     pub const UNIX_EPOCH: SystemTime = SystemTime {
         second: 0,
         nanos: 0,
     };
 
+    /// Returns the system time corresponding to “now”.
+    ///
+    /// Refer to [now()](https://doc.rust-lang.org/std/time/struct.SystemTime.html#method.now)
     pub fn now() -> Self {
         let mut nanos = 0u32;
 
@@ -759,6 +769,9 @@ impl SystemTime {
         Self { second, nanos }
     }
 
+    /// Returns the amount of time elapsed from an earlier point in time.
+    ///
+    /// Refer to [duration_since()](https://doc.rust-lang.org/std/time/struct.SystemTime.html#method.duration_since)
     pub fn duration_since(&self, earlier: SystemTime) -> Result<Duration, SystemTimeError> {
         let second = self.second - earlier.second;
         let nanos = self.nanos - earlier.nanos;
